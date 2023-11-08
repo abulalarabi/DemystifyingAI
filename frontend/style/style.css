@@ -1,13 +1,142 @@
+
+
+/* Modern Buttons */
+.btn {
+    display: inline-block;
+    border-radius: 4px;
+    background-color: transparent;
+    border: 2px solid #2196F3;
+    color: #2196F3;
+    text-align: center;
+    font-size: 14px;
+    padding: 10px;
+    width: 200px;
+    transition: all 0.5s;
+    cursor: pointer;
+    margin: 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:hover {
+    background-color: #2196F3;
+    color: #FFFFFF;
+}
+
+.btn::before {
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    bottom: -20px;
+    right: -20px;
+    background: inherit;
+    filter: blur(20px);
+}
+
+.btn::after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.1);
+    mix-blend-mode: screen;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    z-index: 1;
+    background-color: #f1f1f1;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 5px;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.dropdown-content a {
+    color: #2196F3;
+    padding: 8px 12px;
+    text-decoration: none;
+    display: block;
+    font-size: 14px;
+    transition: all 0.5s;
+}
+
+.dropdown-content a:hover {
+    background-color: #2196F3;
+    color: #FFFFFF;
+}
+
+
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
 }
 .grid-item {
-    height: 40vh;
-    background-color: #ddd;
+    height: 60vh;
+    background-color: rgba(255, 255, 255, 0.5);
     padding: 20px;
-    font-size: 30px;
+    font-size: 16px;
     text-align: center;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+.tab button {
+    background-color: transparent;
+    border: 2px solid #2196F3;
+    color: #2196F3;
+    text-align: center;
+    font-size: 14px;
+    transition: all 0.5s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+}
+.tab button:hover {
+    background-color: #2196F3;
+    color: #FFFFFF;
+}
+.tab button.active {
+    background-color: #2196F3;
+    color: #FFFFFF;
+}
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+    background-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.centered-div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

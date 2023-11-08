@@ -3,18 +3,63 @@
     <head>
         <meta charset="utf-8">
         <script src="vendor/plotly-2.27.0.min.js"></script>
+        <script src="vendor/jquery-3.6.0.min.js"></script>
+        <script src="vendor/papaparse.min.js"></script>
         <title>DemystifyingAI</title>
         <link rel="stylesheet" href="style/style.css">
+        <link rel="stylesheet" href="style/toastify.min.css">
+        <link rel="stylesheet" href="style/csv.css">
     </head>
     <body>
         <h2 style="text-align: center;">DemystifyingAI</h2>
         <div class="grid-container">
-            <div class="grid-item">1</div>
-            <div class="grid-item">2</div>
-            <div class="grid-item">3</div>
+        <div class="grid-item" id="'datasetupload">
+            <div class="tab">
+                <button class="tablinks active" onclick="openTab(event, 'dataset')">Dataset</button>
+                <button class="tablinks" onclick="openTab(event, 'filters')">Filters</button>
+            </div>
+            <div id="dataset" class="tabcontent" style="display:block">
+                <h3>Upload Dataset</h3>
+                <form id="upload-form" method="post" enctype="multipart/form-data">
+                    <input type="file" name="file" accept=".csv" style="display: none;" id="file">
+                    <p id="datasetname" placeholder="Select a Dataset">Select a Dataset</p><br>
+                    <input type="button" value="Browse" class="btn" onclick="document.getElementsByName('file')[0].click();"> 
+                    
+                    <input type="submit" value="Upload" class="btn">
+                </form>
+            </div>
+            <div id="filters" class="tabcontent">
+                <h3>Filters</h3>
+                <p>Upload a dataset first</p>
+            </div>
+        </div>
+
+            <div class="grid-item" id="datasetviewer" style="overflow-y: auto; display: none;">
+                <table id="csvRoot"></table> 
+            </div>
+
+            <div class="grid-item" id="modelparams" >
+                <h3>Model Parameters</h3>
+                <label for="model-select">Select a Machine Learning Model:</label>
+                <select id="model-select" class="dropdown">
+                    <option value="decision-tree">Decision Tree</option>
+                    <option value="random-forest">Random Forest</option>
+                    <option value="svm">Support Vector Machine</option>
+                </select>
+                <br><br>
+                <label for="depth-slider">Select Depth:</label>
+                <input type="range" id="depth-slider" name="depth-slider" min="1" max="10" value="5">
+                <br><br>
+                <label for="leaves-slider">Select Number of Leaves:</label>
+                <input type="range" id="leaves-slider" name="leaves-slider" min="1" max="100" value="50">
+            </div>
             <div class="grid-item">4</div>
             <div class="grid-item">5</div>
             <div class="grid-item">6</div>
         </div>
+        <script src="vendor/toastify-js.js"></script>
+        <script src="src/csvviewer.js"></script>
+        <script src="src/uiscripts.js"></script>
+        <script src="src/dataupload.js"></script>
     </body>
 </html>
