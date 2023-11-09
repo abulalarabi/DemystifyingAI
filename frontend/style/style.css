@@ -43,27 +43,6 @@
     mix-blend-mode: screen;
 }
 
-.dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-.dropdown-content {
-    display: none;
-    position: absolute;
-    z-index: 1;
-    background-color: #f1f1f1;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    border-radius: 4px;
-    padding: 12px;
-    margin-top: 5px;
-}
-
-.dropdown:hover .dropdown-content {
-    display: block;
-}
-
 .dropdown-content a {
     color: #2196F3;
     padding: 8px 12px;

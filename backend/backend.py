@@ -1,10 +1,12 @@
 import os
 from flask import send_file, Flask, flash, request, redirect, render_template,url_for, jsonify
 from werkzeug.utils import secure_filename
+import pandas as pd
 from flask_cors import CORS
 import time
 import shutil
 import json
+import models
 
 app=Flask(__name__)
 #app.secret_key = "secret key"
@@ -12,6 +14,10 @@ CORS(app)
 
 filename = "dataset.csv"
 supprted_type = ['csv']
+
+def getColumnNames():
+    df = pd.read_csv('./dataset/'+filename)
+    return list(df.columns)
 
 # route to fetch and download the dataset submitted by a form over POST
 @app.route('/dataset', methods=['GET', 'POST'])
@@ -44,8 +50,10 @@ def dataset():
                 # filename = secure_filename(file.filename)
                 file.save('./dataset/'+filename)
                 print("File uploaded successfully")
-                
-                resp = jsonify({'message': 'File uploaded successfully', 'success': True})
+
+                # return the column names of the dataset
+
+                resp = jsonify({'message': 'File uploaded successfully', 'success': True, 'columns': getColumnNames()})
                 resp.headers.add('Access-Control-Allow-Origin', '*')
                 return resp,200, {'ContentType':'application/json'} 
             else:
@@ -55,6 +63,46 @@ def dataset():
                 return resp,400, {'ContentType':'application/json'}
     # return none if the request is invalid
     return None
+
+# route to get decision bounadry plot
+@app.route('/decisionboundary', methods=['GET', 'POST'])
+def decisionboundary():
+    # get json data 
+    data = request.get_json()
+    if not data:
+        resp = jsonify({'message': 'No data found'})
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        return resp,400, {'ContentType':'application/json'}
+    #data = json.loads(data)
+
+    print(data)
+
+    # get the first and second feature
+    feature1 = data['feature1']
+    feature2 = data['feature2']
+
+    # get the target
+    label = data['target']
+
+    # get the model
+    model = data['model']
+
+    # get max depth
+    max_depth = int(data['max_depth'])
+    
+    # create a X and y dataframe
+    df = pd.read_csv('./dataset/'+filename)
+    X = df[[feature1, feature2]].to_numpy()
+    y = df[label].to_numpy()
+
+    if model == 'decision-tree':
+        # get the decision boundary plot
+        all_frames = models.dtree_figure(X, y, max_depth, feature1, feature2, label)
+
+    # return the plot
+    resp = jsonify({'frames': all_frames, 'message': 'Running Model', 'success': True})
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    return resp,200, {'ContentType':'application/json'}
 
 
 

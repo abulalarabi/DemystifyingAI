@@ -9,6 +9,8 @@
         <link rel="stylesheet" href="style/style.css">
         <link rel="stylesheet" href="style/toastify.min.css">
         <link rel="stylesheet" href="style/csv.css">
+        <link rel="stylesheet" href="style/slider.css">
+        <link rel="stylesheet" href="style/dropdown.css">
     </head>
     <body>
         <h2 style="text-align: center;">DemystifyingAI</h2>
@@ -35,31 +37,101 @@
         </div>
 
             <div class="grid-item" id="datasetviewer" style="overflow-y: auto; display: none;">
+                <h3>Dataset Viewer</h3>
+                <hr>
+                <br>
                 <table id="csvRoot"></table> 
             </div>
 
             <div class="grid-item" id="modelparams" >
                 <h3>Model Parameters</h3>
-                <label for="model-select">Select a Machine Learning Model:</label>
-                <select id="model-select" class="dropdown">
-                    <option value="decision-tree">Decision Tree</option>
-                    <option value="random-forest">Random Forest</option>
-                    <option value="svm">Support Vector Machine</option>
-                </select>
-                <br><br>
-                <label for="depth-slider">Select Depth:</label>
-                <input type="range" id="depth-slider" name="depth-slider" min="1" max="10" value="5">
-                <br><br>
-                <label for="leaves-slider">Select Number of Leaves:</label>
-                <input type="range" id="leaves-slider" name="leaves-slider" min="1" max="100" value="50">
+                <hr>
+                <br>
+                <div class="slider-div" style="padding-top: 20px;">
+                    <label for="model-select">Select a Machine Learning Model:</label>
+                    <select id="model-select">
+                        <option value="decision-tree">Decision Tree</option>
+                        <option value="random-forest">Random Forest</option>
+                        <option value="svm">Support Vector Machine</option>
+                    </select>
+                    <br><br>
+                    <label for="output-select">Select the Output Variable:</label>
+                    <select id="output-select">
+                        
+                    </select>
+                    
+                </div>
+                <br>
+                <div class="slider-div">
+                    <p id="depth">Maximum Depth: 5</p>
+                    <input type="range" id="depth-slider" name="depth-slider" min="1" max="10" value="5" class="slider" onchange="document.getElementById('depth').textContent='Maximum Depth: '+this.value; document.getElementById('seek-slider').max = this.value">
+                </div>
+                <br>
+                <div class="slider-div">
+                    <p id="leaves">Number of Leaves: 10</p>
+                    <input type="range" id="leaves-slider" name="depth-slider" min="1" max="50" value="10" class="slider" onchange="document.getElementById('leaves').textContent='Maximum Depth: '+this.value">
+                </div>
+                <br>
+                <button id="run-model-btn" class="btn">Run Model</button>
             </div>
-            <div class="grid-item">4</div>
-            <div class="grid-item">5</div>
-            <div class="grid-item">6</div>
+
+            <div class="grid-item" id="confusion-matrix">
+                <h3>Confusion Matrix</h3>
+                <hr>
+                <br>
+                <div id="confusion-matrix-plot"></div>
+            </div>
+
+            <div class="grid-item" id="feature-importance">
+                <h3>Feature Importance</h3>
+                <hr>
+                <br>
+                <div id="feature-importance-plot"></div>
+            </div>
+
+            <div class="grid-item" id="decision-boundary">
+                <h3>Decision Boundary</h3>
+                <hr>
+                <br>
+                <div class="dropdown-container">
+                    <div>
+                        <label for="feature1">Feature 1:</label>
+                        <select id="feature1">
+                            
+                        </select>
+                    </div>
+                    
+                    <br>
+                    <div>
+                        <label for="feature2">Feature 2:</label>
+                        <select id="feature2">
+                            
+                        </select>
+                    </div>
+                    <br>
+                    <button id="plot-boundary-btn" class="btn" style="margin-top: -10px;">Run Boundary Animation</button>
+                </div>
+                <br>
+                <div id="boundary-plot"></div>
+                <br>
+                <div class="dropdown-container">
+                    <label id="seek-slider-label" for="seek-slider">Depth:1</label>
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    <input type="range" id="seek-slider" name="seek-slider" min="1" max="5" value="1" class="slider">
+                    <button id="play-pause-btn" class="btn" style="margin-top: -15px;">Play Again</button>
+                </div>
+                
+            
+                
+            </div>
+           
         </div>
         <script src="vendor/toastify-js.js"></script>
         <script src="src/csvviewer.js"></script>
         <script src="src/uiscripts.js"></script>
         <script src="src/dataupload.js"></script>
+        <script src="src/slider.js"></script>
+        <script src="src/modelrun.js"></script>
+        <script src="src/plotboundary.js"></script>
     </body>
 </html>

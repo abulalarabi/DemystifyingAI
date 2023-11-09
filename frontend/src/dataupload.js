@@ -22,6 +22,25 @@ form.addEventListener('submit', async (event) => {
                             duration: 3000
                         }).showToast();
                         $('#datasetviewer').fadeIn(300);
+
+                        // append the column names to output-select id dropdown
+                        let column_names = data.columns;
+                        let output_select = document.getElementById('output-select');
+                        let feature1_select = document.getElementById('feature1');
+                        let feature2_select = document.getElementById('feature2');
+                        output_select.innerHTML = "";
+                        column_names.forEach((column_name) => {
+                            let option = document.createElement('option');
+                            option.value = column_name;
+                            option.text = column_name;
+                            output_select.appendChild(option);
+                            feature1_select.appendChild(option.cloneNode(true));
+                            feature2_select.appendChild(option.cloneNode(true));
+                        });
+                        // select the last item fro output_select
+                        output_select.selectedIndex = output_select.length - 1;
+                        // select the second element from feature2_select
+                        feature2_select.selectedIndex = 1;
                     }
                 }
                 
