@@ -50,7 +50,19 @@ def get_confusion_fig(X,y_true,model):
         'xanchor': 'center',
         'yanchor': 'top'})
 
-    return fig
+    # return fig
+    # return json format figure
+    return fig.to_json()
+
+def dtree_model(X,y,dtree_depth,leaves):
+    
+    model=DecisionTreeClassifier(max_depth=dtree_depth)
+    model.fit(X,y)
+    
+    # get the confusion matrix
+    confusion_fig=get_confusion_fig(X,y,model)
+
+    return confusion_fig
 
 def dtree_figure(X,y,dtree_depth, feature1="", feature2="", label=""):
     h =mesh_step= 0.3  # step size in the mesh

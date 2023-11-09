@@ -12,15 +12,16 @@ form.addEventListener('submit', async (event) => {
         success:function(data){
             if(data.hasOwnProperty('message'))
             {
+                Toastify({
+                    text: data.message,
+                    duration: 3000
+                }).showToast();
                 console.log(data.message);
                 if(data.hasOwnProperty('success'))
                 {
                     if(data.success)
                     {
-                        Toastify({
-                            text: data.message,
-                            duration: 3000
-                        }).showToast();
+                        
                         $('#datasetviewer').fadeIn(300);
 
                         // append the column names to output-select id dropdown

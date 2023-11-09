@@ -61,8 +61,11 @@ def dataset():
                 resp = jsonify({'message': 'File not supported'})
                 resp.headers.add('Access-Control-Allow-Origin', '*')
                 return resp,400, {'ContentType':'application/json'}
+    
     # return none if the request is invalid
-    return None
+    resp = jsonify({'message': 'No file selected'})
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    return resp,400, {'ContentType':'application/json'}
 
 # route to get decision bounadry plot
 @app.route('/decisionboundary', methods=['GET', 'POST'])
@@ -104,6 +107,40 @@ def decisionboundary():
     resp.headers.add('Access-Control-Allow-Origin', '*')
     return resp,200, {'ContentType':'application/json'}
 
+
+# route to run model
+@app.route('/runmodel', methods=['GET', 'POST'])
+def runmodel():
+    # get json data
+    data = request.get_json()
+
+    if not data:
+        resp = jsonify({'message': 'No data found'})
+        resp.headers.add('Access-Control-Allow-Origin', '*')
+        return resp,400, {'ContentType':'application/json'}
+    
+    print(data)
+
+    # get model params
+    model = data['model']
+    max_depth = int(data['max_depth'])
+    leaves = int(data['leaves'])
+    label = data['target']
+
+    # create a dataset with all columns except the target
+    df = pd.read_csv('./dataset/'+filename)
+    X = df.drop(columns=[label]).to_numpy()
+    y = df[label].to_numpy()
+
+    # run the model
+
+    if model == 'decision-tree':
+        confusion_matrix = models.dtree_model(X, y, max_depth, leaves)
+    
+    # return the confusion matrix
+    resp = jsonify({'confusion_matrix': confusion_matrix, 'message': 'Running Model', 'success': True})
+    resp.headers.add('Access-Control-Allow-Origin', '*')
+    return resp,200, {'ContentType':'application/json'}
 
 
 if __name__ == "__main__":
