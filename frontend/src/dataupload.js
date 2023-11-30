@@ -27,21 +27,36 @@ form.addEventListener('submit', async (event) => {
                         // append the column names to output-select id dropdown
                         let column_names = data.columns;
                         let output_select = document.getElementById('output-select');
-                        let feature1_select = document.getElementById('feature1');
-                        let feature2_select = document.getElementById('feature2');
+                        
                         output_select.innerHTML = "";
+                        let filter_div = document.getElementById('filter_checkboxes');
+                        $("#filter_message").text("Select the columns to be filtered");
                         column_names.forEach((column_name) => {
                             let option = document.createElement('option');
                             option.value = column_name;
                             option.text = column_name;
                             output_select.appendChild(option);
-                            feature1_select.appendChild(option.cloneNode(true));
-                            feature2_select.appendChild(option.cloneNode(true));
+                            
+                            let filter_checkbox = document.createElement('input');
+                            filter_checkbox.type = "checkbox";
+                            filter_checkbox.name = column_name;
+                            filter_checkbox.value = column_name;
+                            filter_checkbox.checked = true;
+                            filter_checkbox.className = "filter-checkbox";
+                            filter_div.appendChild(filter_checkbox);
+                            let filter_label = document.createElement('label');
+                            filter_label.for = column_name;
+                            filter_label.innerHTML = column_name;
+                            filter_label.className = "filter-label";
+                            filter_div.appendChild(filter_label);
+                            let br = document.createElement('br');
+                            filter_div.appendChild(br);
+
                         });
                         // select the last item fro output_select
                         output_select.selectedIndex = output_select.length - 1;
-                        // select the second element from feature2_select
-                        feature2_select.selectedIndex = 1;
+                        
+                        $('#modelparams').fadeIn(300);
                     }
                 }
                 

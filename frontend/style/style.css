@@ -1,4 +1,37 @@
+.centerize {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
+.banner {
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    width: 84vw;
+}
+
+.banner-small {
+    background-color: #120064;
+    color: #fff;
+    padding: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    width: 84vw;
+}
+
+.banner-items {
+    position: relative;
+    margin-top: -10px;
+    background-color: #2196F3;
+    color: #fff;
+    padding: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    width: 100%;
+}
 
 /* Modern Buttons */
 .btn {
@@ -64,7 +97,9 @@
     gap: 10px;
 }
 .grid-item {
-    height: 60vh;
+    width: 40vw;
+    max-height: 40vw;
+    overflow-y: auto;
     background-color: rgba(255, 255, 255, 0.5);
     padding: 20px;
     font-size: 16px;
@@ -118,4 +153,12 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.filter-label {
+    margin: 5px 0px;
+}
+
+.filter-checkbox {
+    margin: 10px 10px;
 }

@@ -5,7 +5,7 @@
         <script src="vendor/plotly-2.27.0.min.js"></script>
         <script src="vendor/jquery-3.6.0.min.js"></script>
         <script src="vendor/papaparse.min.js"></script>
-        <title>DemystifyingAI</title>
+        <title>DemystifyingML</title>
         <link rel="stylesheet" href="style/style.css">
         <link rel="stylesheet" href="style/toastify.min.css">
         <link rel="stylesheet" href="style/csv.css">
@@ -13,7 +13,14 @@
         <link rel="stylesheet" href="style/dropdown.css">
     </head>
     <body>
-        <h2 style="text-align: center;">DemystifyingAI</h2>
+        <div id="all-content">
+
+        
+        <div class="centerize">
+            <h2 class="banner" style="text-align: center;">Demystifying Machine Learning For All</h2>
+        </div>
+        
+        <div class="centerize">
         <div class="grid-container">
         <div class="grid-item" id="'datasetupload">
             <div class="tab">
@@ -29,23 +36,32 @@
                     
                     <input type="submit" value="Upload" class="btn">
                 </form>
+                <br>
+                <div class="centerize">
+                    <div  id="datasetviewer" style="overflow-y: auto; display: none; max-height: 25vw; max-width: 35vw;">
+                        <h3>Dataset Viewer</h3>
+                        <hr>
+                        <br>
+                        <table id="csvRoot"></table> 
+                    </div>
+                </div>
             </div>
             <div id="filters" class="tabcontent">
-                <h3>Filters</h3>
-                <p>Upload a dataset first</p>
+                <div class="centerize">
+                    <h3 class="banner-items" style="top: 5px;">Filter Selection</h3>
+                </div>
+                <h4 id="filter_message">Upload a dataset first</h4>
+                <div id="filter_checkboxes"></div>
             </div>
         </div>
 
-            <div class="grid-item" id="datasetviewer" style="overflow-y: auto; display: none;">
-                <h3>Dataset Viewer</h3>
-                <hr>
-                <br>
-                <table id="csvRoot"></table> 
-            </div>
+            
 
-            <div class="grid-item" id="modelparams" >
-                <h3>Model Parameters</h3>
-                <hr>
+            <div class="grid-item" id="modelparams" style="display: none;" >
+                <div class="centerize">
+                    <h3 class="banner-items">Model Parameters</h3>
+                </div>
+                
                 <br>
                 <div class="slider-div" style="padding-top: 20px;">
                     <label for="model-select">Select a Machine Learning Model:</label>
@@ -59,6 +75,12 @@
                     <select id="output-select">
                         
                     </select>
+                    <br><br>
+                    <label for="model-type-select">Select the Criterion:</label>
+                    <select id="model-type-select">
+                        <option value="classifier">Classifier</option>
+                        <option value="regression">Regression</option>
+                    </select>
                     
                 </div>
                 <br>
@@ -68,30 +90,58 @@
                 </div>
                 <br>
                 <div class="slider-div">
-                    <p id="leaves">Number of Leaves: 10</p>
-                    <input type="range" id="leaves-slider" name="depth-slider" min="1" max="50" value="10" class="slider" onchange="document.getElementById('leaves').textContent='Maximum Depth: '+this.value">
+                    <p id="leaves">Minimum Number of Leaves: 10</p>
+                    <input type="range" id="leaves-slider" name="depth-slider" min="1" max="100" value="1" class="slider" onchange="document.getElementById('leaves').textContent='Minimum Number of Leaves: '+this.value">
+                </div>
+                <br>
+                <div class="slider-div">
+                    <p id="train-test-label">Train: 80% and Test 20%</p>
+                    <input type="range" id="train-test-slider" name="train-test" min="1" max="100" value="80" class="slider" onchange="document.getElementById('train-test-label').textContent='Train: '+this.value+'% and Test: '+ (100-this.value)+'%'">
                 </div>
                 <br>
                 <button id="run-model-btn" class="btn">Run Model</button>
             </div>
 
+            </div> 
+        </div>
+        <br>
+        <div id="primary-information" style="display: none;">
+        <div class="centerize">
+            <h3 class="banner-small" style="text-align: center;">Primary Information</h3>
+        </div>
+
+            <div class="centerize">
+            <div class="grid-container">
+            <div class="grid-item" id="metrics">
+                <div class="centerize">
+                    <h3 class="banner-items">Model Metrics</h3>
+                </div>
+                <br>
+                <div class="centerize">
+                    <div id="model-metrics"></div>
+                </div>
+                
+            </div>
             <div class="grid-item" id="confusion-matrix">
-                <h3>Confusion Matrix</h3>
-                <hr>
+                <div class="centerize">
+                    <h3 class="banner-items" id="confusion-banner">Confusion Matrix</h3>
+                </div>
                 <br>
                 <div id="confusion-matrix-plot"></div>
             </div>
 
             <div class="grid-item" id="feature-importance">
-                <h3>Feature Importance</h3>
-                <hr>
+                <div class="centerize">
+                    <h3 class="banner-items">Feature Importance</h3>
+                </div>
                 <br>
                 <div id="feature-importance-plot"></div>
             </div>
 
             <div class="grid-item" id="decision-boundary">
-                <h3>Decision Boundary</h3>
-                <hr>
+                <div class="centerize">
+                    <h3 class="banner-items">Decision Boundary</h3>
+                </div>
                 <br>
                 <div class="dropdown-container">
                     <div>
@@ -126,6 +176,196 @@
             </div>
            
         </div>
+    </div>
+</div>
+<br>
+<div id="secondary-information" style="display: none;">
+    <div class="centerize">
+        <h3 class="banner-small" style="text-align: center;">Fine-grained Information</h3>
+    </div>
+
+        <div class="centerize">
+        <div class="grid-container">
+        <div class="grid-item" >
+            <div class="centerize">
+                <h3 class="banner-items">Individual Feature Dependence</h3>
+            </div>
+            <br>
+            <div class="dropdown-container">
+                <div>
+                    <label for="individual-feature">Select a Feature:</label>
+                    <select id="individual-feature" name="individual-feature">
+                        
+                    </select>
+                </div>
+                
+                <br>
+                <button id="plot-individual-btn" class="btn" style="margin-top: -10px;">Plot Feature Dependence</button>
+            </div>
+            <div class="centerize">
+                <div id="individual-shap-plot"></div>
+            </div>
+            
+        </div>
+
+        <div class="grid-item" >
+            <div class="centerize">
+                <h3 class="banner-items">Feature Contribution</h3>
+            </div>
+            <br>
+            <div class="dropdown-container" style="display: none;">
+                <div>
+                    <label for="feature-contribution">Select an Index:</label>
+                    <select id="feature-contribution" name="feature-contribution">
+                        
+                    </select>
+                </div>
+                
+                <br>
+                <button id="feature-contribution-btn" class="btn" style="margin-top: -10px;">Plot Contributions</button>
+            </div>
+            <div class="centerize">
+                <div id="feature-contribution-plot"></div>
+            </div>
+            
+        </div>
+
+        <div class="grid-item">
+            <div class="centerize">
+                <h3 class="banner-items">Partial Feature Dependence</h3>
+            </div>
+            <br>
+            <div class="dropdown-container">
+                <div>
+                    <label for="partial-feature">Select a Feature:</label>
+                    <select id="partial-feature" name="partial-feature">
+                        
+                    </select>
+                </div>
+                
+                <br>
+                <button id="plot-partial-btn" class="btn" style="margin-top: -10px;">Plot Partial Dependence</button>
+            </div>
+            <div class="centerize">
+                <div id="plot-partial"></div>
+            </div>
+            
+        </div>
+        <div class="grid-item">
+            <div class="centerize">
+                <h3 class="banner-items">Feature Interaction</h3>
+            </div>
+            <br>
+            <div class="dropdown-container">
+                <div>
+                    <label for="feature-int1">Feature 1:</label>
+                    <select id="feature-int1" name="feature-int1">
+                        
+                    </select>
+                </div>
+                
+                <br>
+                <div>
+                    <label for="feature-int2">Feature 2:</label>
+                    <select id="feature-int2">
+                        
+                    </select>
+                </div>
+                <br>
+                <button id="plot-interaction-btn" class="btn" style="margin-top: -10px;">Plot Feature Interaction</button>
+            </div>
+            <br>
+            <div id="plot-interaction"></div>
+        </div>
+        <div class="grid-item">
+            <div class="centerize">
+                <h3 class="banner-items">Interaction Summary</h3>
+            </div>
+            <br>
+            <div class="dropdown-container">
+                <div>
+                    <label for="feature-summary">Select a Feature:</label>
+                    <select id="feature-summary" name="feature-summary">
+                        
+                    </select>
+                </div>
+                
+                <br>
+                
+                <br>
+                <button id="plot-int-summary-btn" class="btn" style="margin-top: -10px;">Plot Interaction Summary</button>
+            </div>
+            <br>
+            <div id="plot-interaction-summary"></div>
+        </div>
+        <div class="grid-item" id="pr-div">
+            <div class="centerize">
+                <h3 class="banner-items">Precision-Recall Curve</h3>
+            </div>
+            <br>
+            <div class="slider-div">
+                <p id="pr-label">PR Threshold: 0.7</p>
+                <input type="range" id="pr-slider" name="pr-slider" min="1" max="100" value="70" class="slider">
+            </div>
+            <br>
+            <div id="plot-pr"></div>
+        </div>
+        <div class="grid-item" id="roc-div">
+            <div class="centerize">
+                <h3 class="banner-items">ROC Curve</h3>
+            </div>
+            <br>
+            <div class="slider-div">
+                <p id="roc-label">ROC Threshold: 0.7</p>
+                <input type="range" id="roc-slider" name="roc-slider" min="1" max="100" value="70" class="slider">
+            </div>
+            <br>
+            <div id="plot-roc"></div>
+        </div>
+
+        <div class="grid-item" id="residue-div">
+            <div class="centerize">
+                <h3 class="banner-items">Plot of Residuals</h3>
+            </div>
+            <br>
+            
+            <div id="plot-residue"></div>
+        </div>
+
+        <div class="grid-item" id="residue-feature-div">
+            <div class="centerize">
+                <h3 class="banner-items">Plot residuals vs Individual Features</h3>
+            </div>
+            <br>
+            <div class="dropdown-container">
+                <div>
+                    <label for="residue-feature">Select a Feature:</label>
+                    <select id="residue-feature" name="residue-feature">
+                        
+                    </select>
+                </div>
+                
+                <br>
+                
+                <br>
+                <button id="plot-residue-feature-btn" class="btn" style="margin-top: -10px;">Plot Residue</button>
+            </div>
+            <br>
+            <div id="plot-residue-feature"></div>
+        </div>
+
+        <div class="grid-item">
+            <div class="centerize">
+                <h3 class="banner-items">Export Data</h3>
+            </div>
+            <br>
+            <button id="export-btn" class="btn" style="margin-top: -10px;">Export Results in PDF</button>
+        </div>
+
+        </div>
+        </div>
+        </div>
+    </div>
         <script src="vendor/toastify-js.js"></script>
         <script src="src/csvviewer.js"></script>
         <script src="src/uiscripts.js"></script>
@@ -133,5 +373,7 @@
         <script src="src/slider.js"></script>
         <script src="src/modelrun.js"></script>
         <script src="src/plotboundary.js"></script>
+        <script src="src/secondary.js"></script>
+        <script src="src/curve.js"></script>
     </body>
 </html>
