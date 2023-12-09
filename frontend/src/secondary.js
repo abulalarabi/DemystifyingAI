@@ -71,6 +71,19 @@ function plotPartial(partial_data){
     plotData = JSON.parse(partial_data);
     console.log(plotData);
     Plotly.newPlot('plot-partial', plotData.data, plotData.layout);
+    
+    // on click highlight the plotly trace
+    document.getElementById("plot-partial").on('plotly_click', function(data){
+        let trace = data.points[0].curveNumber;
+        console.log(trace);
+        let update = {
+            'line': {
+                'color': 'red'
+            }
+        };
+        Plotly.restyle('plot-partial', update, [trace]);
+        //console.log(data.points[0].curveNumber);
+    });
 }
 
 function plotInteractionSummary(interaction_summary){

@@ -76,6 +76,13 @@ def getShapFigure(model,X,y,model_type='classifier'):
         explainer = explainerdashboard.RegressionExplainer(model, X, y)
     
     fig = explainer.plot_importances()
+    # set color value to the fig based on the x value
+    # get abs of x value
+    xabs = np.abs(fig['data'][0]['x'])
+    # get color value
+    color_value = xabs
+    # set color value
+    fig['data'][0]['marker']['color'] = color_value
     # add hover info
     fig.update_traces(hovertemplate="ID: %{pointIndex}<br>Feature: %{y}<br>Importance: %{x}")
     return fig.to_json()
@@ -99,7 +106,9 @@ def getIndividualShap(model,X,y,feature,model_type='classifier'):
     fig = explainer.plot_dependence(feature)
     
     # set color value to the fig based on the y value
-    fig['data'][0]['marker']['color'] = y
+    # get abs of y value
+    yabs = np.abs(fig['data'][0]['y'])
+    fig['data'][0]['marker']['color'] = yabs
     
     # check the number of unique values in the feature
     if len(X[feature].unique()) < 7:
@@ -184,6 +193,7 @@ def getInteractionSummary(model,X,y,feature,model_type='classifier'):
         label_encoder = LabelEncoder()
         y=label_encoder.fit_transform(y)
     
+    
     # create a shap explainer
     if model_type == 'classifier':
         explainer = explainerdashboard.ClassifierExplainer(model, X, y)
@@ -191,6 +201,9 @@ def getInteractionSummary(model,X,y,feature,model_type='classifier'):
         explainer = explainerdashboard.RegressionExplainer(model, X, y)
     
     fig = explainer.plot_interactions_detailed(feature, topx=5)
+
+    # move the labels to the left
+    fig.update_layout(legend=dict(x=-0.1, y=1.2))
     
     # add hover info
     fig.update_traces(hovertemplate="ID:%{pointIndex}<br>Predicted Value: %{x}<br>SHAP Value: %{y}")
@@ -237,6 +250,17 @@ def getRoc(model,X,y,cut_off,model_type='classifier',feature=None):
     else:
         explainer = explainerdashboard.RegressionExplainer(model, X, y)
         fig = explainer.plot_residuals_vs_feature(feature)
+        # check if the feature is categorical or not by checking the number of unique values
+        if len(X[feature].unique()) < 7:
+            # get x and y values from the figure
+            x = fig['data'][0]['x']
+            y = fig['data'][0]['y']
+
+            # create a violin plot using plotly express
+            fig = px.violin(x=x, y=y, color=x)
+            # add title
+            fig.update_layout(title=f'Residuals vs {feature}')
+
         return fig.to_json()
 
     
