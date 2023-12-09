@@ -1,6 +1,0 @@
-Collecting wheel
-  Downloading wheel-0.41.3-py3-none-any.whl.metadata (2.2 kB)
-Downloading wheel-0.41.3-py3-none-any.whl (65 kB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 65.8/65.8 kB 3.8 MB/s eta 0:00:00
-Installing collected packages: wheel
-Successfully installed wheel-0.41.3
