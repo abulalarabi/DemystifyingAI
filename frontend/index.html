@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
-        <script src="vendor/plotly-2.27.0.min.js"></script>
-        <script src="vendor/jquery-3.6.0.min.js"></script>
-        <script src="vendor/papaparse.min.js"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" href="data:,">
+        <script src="/assets/vendor/plotly-2.27.0.min.js"></script>
         <title>DemystifyingML</title>
-        <link rel="stylesheet" href="style/style.css">
-        <link rel="stylesheet" href="style/toastify.min.css">
-        <link rel="stylesheet" href="style/csv.css">
-        <link rel="stylesheet" href="style/slider.css">
-        <link rel="stylesheet" href="style/dropdown.css">
+        <link rel="stylesheet" href="/assets/style/style.css">
+        <link rel="stylesheet" href="/assets/style/toastify.min.css">
+        <link rel="stylesheet" href="/assets/style/csv.css">
+        <link rel="stylesheet" href="/assets/style/slider.css">
+        <link rel="stylesheet" href="/assets/style/dropdown.css">
     </head>
     <body>
         <div id="all-content">
@@ -22,7 +22,7 @@
         
         <div class="centerize">
         <div class="grid-container">
-        <div class="grid-item" id="'datasetupload">
+        <div class="grid-item" id="datasetupload">
             <div class="tab">
                 <button class="tablinks active" onclick="openTab(event, 'dataset')">Dataset</button>
                 <button class="tablinks" onclick="openTab(event, 'filters')">Filters</button>
@@ -31,15 +31,16 @@
                 <h3>Upload Dataset</h3>
                 <form id="upload-form" method="post" enctype="multipart/form-data">
                     <input type="file" name="file" accept=".csv" style="display: none;" id="file">
-                    <p id="datasetname" placeholder="Select a Dataset">Select a Dataset</p><br>
+                    <p id="datasetname">Select a Dataset</p><br>
                     <input type="button" value="Browse" class="btn" onclick="document.getElementsByName('file')[0].click();"> 
                     
-                    <input type="submit" value="Upload" class="btn">
+                    <input type="submit" id="upload-btn" value="Upload" class="btn">
                 </form>
                 <br>
                 <div class="centerize">
-                    <div  id="datasetviewer" style="overflow-y: auto; display: none; max-height: 25vw; max-width: 35vw;">
+                    <div id="datasetviewer" style="display: none;">
                         <h3>Dataset Viewer</h3>
+                        <p id="dataset-preview-count"></p>
                         <hr>
                         <br>
                         <table id="csvRoot"></table> 
@@ -83,20 +84,22 @@
                     </select>
                     
                 </div>
-                <br>
-                <div class="slider-div">
-                    <p id="depth">Maximum Depth: 5</p>
-                    <input type="range" id="depth-slider" name="depth-slider" min="1" max="10" value="5" class="slider" onchange="document.getElementById('depth').textContent='Maximum Depth: '+this.value; document.getElementById('seek-slider').max = this.value">
+                <div id="tree-settings">
+                    <br>
+                    <div class="slider-div">
+                        <p><label for="depth-slider" id="depth">Maximum Depth: 5</label></p>
+                        <input type="range" id="depth-slider" min="1" max="10" value="5" class="slider" oninput="document.getElementById('depth').textContent='Maximum Depth: '+this.value">
+                    </div>
+                    <br>
+                    <div class="slider-div">
+                        <p><label for="leaves-slider" id="leaves">Minimum Samples per Leaf: 1</label></p>
+                        <input type="range" id="leaves-slider" min="1" max="100" value="1" class="slider" oninput="document.getElementById('leaves').textContent='Minimum Samples per Leaf: '+this.value">
+                    </div>
                 </div>
                 <br>
                 <div class="slider-div">
-                    <p id="leaves">Minimum Number of Leaves: 10</p>
-                    <input type="range" id="leaves-slider" name="depth-slider" min="1" max="100" value="1" class="slider" onchange="document.getElementById('leaves').textContent='Minimum Number of Leaves: '+this.value">
-                </div>
-                <br>
-                <div class="slider-div">
-                    <p id="train-test-label">Train: 80% and Test 20%</p>
-                    <input type="range" id="train-test-slider" name="train-test" min="1" max="100" value="80" class="slider" onchange="document.getElementById('train-test-label').textContent='Train: '+this.value+'% and Test: '+ (100-this.value)+'%'">
+                    <p><label for="train-test-slider" id="train-test-label">Train: 80% and Test: 20%</label></p>
+                    <input type="range" id="train-test-slider" name="train-test" min="1" max="99" value="80" class="slider" oninput="document.getElementById('train-test-label').textContent='Train: '+this.value+'% and Test: '+ (100-this.value)+'%'">
                 </div>
                 <br>
                 <button id="run-model-btn" class="btn">Run Model</button>
@@ -116,6 +119,7 @@
                 <div class="centerize">
                     <h3 class="banner-items">Model Metrics</h3>
                 </div>
+                <p id="split-summary"></p>
                 <br>
                 <div class="centerize">
                     <div id="model-metrics"></div>
@@ -164,9 +168,8 @@
                 <br>
                 <div id="boundary-plot"></div>
                 <br>
-                <div class="dropdown-container">
-                    <label id="seek-slider-label" for="seek-slider">Depth:1</label>
-                    &nbsp;&nbsp;&nbsp;&nbsp;
+                <div class="dropdown-container" id="boundary-controls" hidden>
+                    <label id="seek-slider-label" for="seek-slider">Depth: 1</label>
                     <input type="range" id="seek-slider" name="seek-slider" min="1" max="5" value="1" class="slider">
                     <button id="play-pause-btn" class="btn" style="margin-top: -15px;">Play Again</button>
                 </div>
@@ -213,9 +216,9 @@
                 <h3 class="banner-items">Feature Contribution</h3>
             </div>
             <br>
-            <div class="dropdown-container" style="display: none;">
+            <div id="contribution-controls" class="dropdown-container" hidden>
                 <div>
-                    <label for="feature-contribution">Select an Index:</label>
+                    <label for="feature-contribution">Select a Row:</label>
                     <select id="feature-contribution" name="feature-contribution">
                         
                     </select>
@@ -251,7 +254,7 @@
             </div>
             
         </div>
-        <div class="grid-item">
+        <div class="grid-item" id="interaction-card">
             <div class="centerize">
                 <h3 class="banner-items">Feature Interaction</h3>
             </div>
@@ -277,7 +280,7 @@
             <br>
             <div id="plot-interaction"></div>
         </div>
-        <div class="grid-item">
+        <div class="grid-item" id="interaction-summary-card">
             <div class="centerize">
                 <h3 class="banner-items">Interaction Summary</h3>
             </div>
@@ -304,8 +307,8 @@
             </div>
             <br>
             <div class="slider-div">
-                <p id="pr-label">PR Threshold: 0.7</p>
-                <input type="range" id="pr-slider" name="pr-slider" min="1" max="100" value="70" class="slider">
+                <p><label id="pr-label" for="pr-slider">Threshold: 0.70</label></p>
+                <input type="range" id="pr-slider" name="pr-slider" min="0" max="100" value="70" class="slider">
             </div>
             <br>
             <div id="plot-pr"></div>
@@ -316,8 +319,8 @@
             </div>
             <br>
             <div class="slider-div">
-                <p id="roc-label">ROC Threshold: 0.7</p>
-                <input type="range" id="roc-slider" name="roc-slider" min="1" max="100" value="70" class="slider">
+                <p><label id="roc-label" for="roc-slider">Threshold: 0.70</label></p>
+                <input type="range" id="roc-slider" name="roc-slider" min="0" max="100" value="70" class="slider">
             </div>
             <br>
             <div id="plot-roc"></div>
@@ -348,7 +351,7 @@
                 <br>
                 
                 <br>
-                <button id="plot-residue-feature-btn" class="btn" style="margin-top: -10px;">Plot Residue</button>
+                <button id="plot-residue-feature-btn" class="btn" style="margin-top: -10px;">Plot Residuals</button>
             </div>
             <br>
             <div id="plot-residue-feature"></div>
@@ -366,14 +369,11 @@
         </div>
         </div>
     </div>
-        <script src="vendor/toastify-js.js"></script>
-        <script src="src/csvviewer.js"></script>
-        <script src="src/uiscripts.js"></script>
-        <script src="src/dataupload.js"></script>
-        <script src="src/slider.js"></script>
-        <script src="src/modelrun.js"></script>
-        <script src="src/plotboundary.js"></script>
-        <script src="src/secondary.js"></script>
-        <script src="src/curve.js"></script>
+        <script src="/assets/vendor/toastify-js.js"></script>
+        <script src="/assets/src/uiscripts.js"></script>
+        <script src="/assets/src/dataupload.js"></script>
+        <script src="/assets/src/modelrun.js"></script>
+        <script src="/assets/src/plotboundary.js"></script>
+        <script src="/assets/src/secondary.js"></script>
     </body>
 </html>

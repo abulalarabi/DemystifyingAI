@@ -1,236 +1,66 @@
-function plotContributions(contributions){
-    //console.log(shap_values);
-    // use plotly to plot the confusion matrix
-    plotData = JSON.parse(contributions);
-    console.log(plotData);
-    Plotly.newPlot('feature-contribution-plot', plotData.data, plotData.layout);
-}
-
-function featureContributionCallback(indx){
-    //console.log(indx);
-    let data = {
-        'index': indx
-    };
-    //console.log(data);
-    $.ajax({
-        contentType: "application/json;charset=utf-8",
-        url: 'http://127.0.0.1:1407/contribution',
-        type: 'POST',
-        data: JSON.stringify(data),
-        dataType: "json",
-        cache: false,
-        success: function (data) {
-            if (data.hasOwnProperty('message')) {
-                Toastify({
-                    text: data.message,
-                    duration: 3000
-                }).showToast();
-                
-                let interaction_summary = data.interaction_summary;
-                plotContributions(interaction_summary);
-            }
-        },
-        error: function (jqXHR, exception) {
-            if (jqXHR.status === 0) console.log("Could not connect to server");
-            else if (jqXHR.status == 404) console.log("Backend not working");
-            else if (jqXHR.status == 500) console.log("Server Error");
-            $("#modelloading").hide();
-        },
-
-    });
-}
-
-function plotIndividualShap(shap_values){
-    //console.log(shap_values);
-    // use plotly to plot the confusion matrix
-    plotData = JSON.parse(shap_values);
-    console.log(plotData);
-    Plotly.newPlot('individual-shap-plot', plotData.data, plotData.layout);
-
-    // add onclick event listener to the plot
-    document.getElementById("individual-shap-plot").on('plotly_click', function(data){
-        //console.log(data.points[0].pointIndex);
-        featureContributionCallback(data.points[0].pointIndex);
-    });
-
-}
-
-
-
-function plotFeatureInteraction(feature_interaction){
-    //console.log(shap_values);
-    // use plotly to plot the confusion matrix
-    plotData = JSON.parse(feature_interaction);
-    console.log(plotData);
-    Plotly.newPlot('plot-interaction', plotData.data, plotData.layout);
-}
-
-function plotPartial(partial_data){
-    //console.log(shap_values);
-    // use plotly to plot the confusion matrix
-    plotData = JSON.parse(partial_data);
-    console.log(plotData);
-    Plotly.newPlot('plot-partial', plotData.data, plotData.layout);
-    
-    // on click highlight the plotly trace
-    document.getElementById("plot-partial").on('plotly_click', function(data){
-        let trace = data.points[0].curveNumber;
-        console.log(trace);
-        let update = {
-            'line': {
-                'color': 'red'
-            }
-        };
-        Plotly.restyle('plot-partial', update, [trace]);
-        //console.log(data.points[0].curveNumber);
-    });
-}
-
-function plotInteractionSummary(interaction_summary){
-    //console.log(shap_values);
-    // use plotly to plot the confusion matrix
-    plotData = JSON.parse(interaction_summary);
-    console.log(plotData);
-    Plotly.newPlot('plot-interaction-summary', plotData.data, plotData.layout);
-}
-
-
-
-$('#plot-int-summary-btn').on('click', function() {
-    let feature = document.getElementById('feature-summary').value;
-    let data = {
-        'feature': feature
-    };
-    //console.log(data);
-    $.ajax({
-        contentType: "application/json;charset=utf-8",
-        url: 'http://127.0.0.1:1407/interactionsummary',
-        type: 'POST',
-        data: JSON.stringify(data),
-        dataType: "json",
-        cache: false,
-        success: function (data) {
-            if (data.hasOwnProperty('message')) {
-                Toastify({
-                    text: data.message,
-                    duration: 3000
-                }).showToast();
-                
-                let interaction_summary = data.interaction_summary;
-                plotInteractionSummary(interaction_summary);
-            }
-        },
-        error: function (jqXHR, exception) {
-            if (jqXHR.status === 0) console.log("Could not connect to server");
-            else if (jqXHR.status == 404) console.log("Backend not working");
-            else if (jqXHR.status == 500) console.log("Server Error");
-            $("#modelloading").hide();
-        },
-
+byId('plot-individual-btn').addEventListener('click', () => {
+    requestPlot('individualshap', { feature: byId('individual-feature').value }, async (data) => {
+        const chart = byId('individual-shap-plot');
+        const figure = JSON.parse(data.shap_values);
+        // Refresh the chart and its single click handler together.
+        if (chart.removeAllListeners) chart.removeAllListeners('plotly_click');
+        await plotFigure(chart.id, figure);
+        const rows = figure.data.flatMap((trace) => trace.customdata);
+        setOptions('feature-contribution', rows);
+        byId('contribution-controls').hidden = false;
+        chart.on('plotly_click', ({ points }) => {
+            const row = points[0]?.customdata;
+            if (row == null) return;
+            byId('feature-contribution').value = row;
+            plotContribution(row);
+        });
     });
 });
 
-$('#plot-individual-btn').on('click', function() {
-    let feature = document.getElementById('individual-feature').value;
-    let data = {
-        'feature': feature
-    };
-    //console.log(data);
-    $.ajax({
-        contentType: "application/json;charset=utf-8",
-        url: 'http://127.0.0.1:1407/individualshap',
-        type: 'POST',
-        data: JSON.stringify(data),
-        dataType: "json",
-        cache: false,
-        success: function (data) {
-            if (data.hasOwnProperty('message')) {
-                Toastify({
-                    text: data.message,
-                    duration: 3000
-                }).showToast();
-                
-                let shap_values = data.shap_values;
-                plotIndividualShap(shap_values);
-            }
-        },
-        error: function (jqXHR, exception) {
-            if (jqXHR.status === 0) console.log("Could not connect to server");
-            else if (jqXHR.status == 404) console.log("Backend not working");
-            else if (jqXHR.status == 500) console.log("Server Error");
-            $("#modelloading").hide();
-        },
+function plotContribution(row) {
+    requestPlot('contribution', { index: row }, (result) => {
+        return plotFigure('feature-contribution-plot', result.interaction_summary);
+    });
+}
 
+byId('feature-contribution-btn').addEventListener('click', () => {
+    plotContribution(byId('feature-contribution').value);
+});
+
+byId('plot-partial-btn').addEventListener('click', () => {
+    requestPlot('partial', { feature: byId('partial-feature').value }, async (result) => {
+        const chart = byId('plot-partial');
+        if (chart.removeAllListeners) chart.removeAllListeners('plotly_click');
+        await plotFigure(chart.id, result.partial_data);
+        chart.on('plotly_click', ({ points }) => {
+            Plotly.restyle(chart, { 'line.color': 'red' }, [points[0].curveNumber]);
+        });
     });
 });
 
-$('#plot-interaction-btn').on('click', function() {
-    let feature1 = document.getElementById('feature-int1').value;
-    let feature2 = document.getElementById('feature-int2').value;
-    let data = {
-        'feature1': feature1,
-        'feature2': feature2
-    };
-    //console.log(data);
-    $.ajax({
-        contentType: "application/json;charset=utf-8",
-        url: 'http://127.0.0.1:1407/interaction',
-        type: 'POST',
-        data: JSON.stringify(data),
-        dataType: "json",
-        cache: false,
-        success: function (data) {
-            if (data.hasOwnProperty('message')) {
-                Toastify({
-                    text: data.message,
-                    duration: 3000
-                }).showToast();
-                
-                let interaction_data = data.feature_interaction;
-                plotFeatureInteraction(interaction_data);
-            }
-        },
-        error: function (jqXHR, exception) {
-            if (jqXHR.status === 0) console.log("Could not connect to server");
-            else if (jqXHR.status == 404) console.log("Backend not working");
-            else if (jqXHR.status == 500) console.log("Server Error");
-            $("#modelloading").hide();
-        },
+byId('plot-interaction-btn').addEventListener('click', () => {
+    requestPlot('interaction', {
+        feature1: byId('feature-int1').value, feature2: byId('feature-int2').value,
+    }, ({ feature_interaction }) => plotFigure('plot-interaction', feature_interaction));
+});
 
+byId('plot-int-summary-btn').addEventListener('click', () => {
+    requestPlot('interactionsummary', { feature: byId('feature-summary').value }, (result) => {
+        return plotFigure('plot-interaction-summary', result.interaction_summary);
     });
 });
 
-$('#plot-partial-btn').on('click', function() {
-    let feature = document.getElementById('partial-feature').value;
-    let data = {
-        'feature': feature
-    };
-    //console.log(data);
-    $.ajax({
-        contentType: "application/json;charset=utf-8",
-        url: 'http://127.0.0.1:1407/partial',
-        type: 'POST',
-        data: JSON.stringify(data),
-        dataType: "json",
-        cache: false,
-        success: function (data) {
-            if (data.hasOwnProperty('message')) {
-                Toastify({
-                    text: data.message,
-                    duration: 3000
-                }).showToast();
-                
-                let partial_data = data.partial_data;
-                plotPartial(partial_data);
-            }
-        },
-        error: function (jqXHR, exception) {
-            if (jqXHR.status === 0) console.log("Could not connect to server");
-            else if (jqXHR.status == 404) console.log("Backend not working");
-            else if (jqXHR.status == 500) console.log("Server Error");
-            $("#modelloading").hide();
-        },
+function plotCurve(name) {
+    const cutoff = Number(byId(name + '-slider').value) / 100;
+    byId(name + '-label').textContent = `Threshold: ${cutoff.toFixed(2)} · Class: ${appState.run.positive_class}`;
+    requestPlot('get' + name, { cut_off: cutoff }, (result) => plotFigure('plot-' + name, result[name]));
+}
 
+byId('pr-slider').addEventListener('change', () => plotCurve('pr'));
+byId('roc-slider').addEventListener('change', () => plotCurve('roc'));
+byId('plot-residue-feature-btn').addEventListener('click', () => {
+    requestPlot('getroc', { feature: byId('residue-feature').value }, (result) => {
+        return plotFigure('plot-residue-feature', result.roc);
     });
 });
-
+byId('export-btn').addEventListener('click', () => window.print());

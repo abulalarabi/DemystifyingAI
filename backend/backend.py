@@ -1,349 +1,178 @@
-import os
-from flask import send_file, Flask, flash, request, redirect, render_template,url_for, jsonify
-from werkzeug.utils import secure_filename
+import csv
+import io
+from collections import OrderedDict
+from dataclasses import dataclass, field
+from pathlib import Path
+from secrets import token_hex
+from threading import Lock
+
 import pandas as pd
-from flask_cors import CORS
-import models
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-import json
+from flask import Flask, abort, jsonify, request, session
+from werkzeug.exceptions import HTTPException
 
-app=Flask(__name__)
-#app.secret_key = "secret key"
-CORS(app)
+from . import models
 
-filename = "dataset.csv"
-supprted_type = ['csv']
-model = None
-model_type = None
-df = None
-label = None
-model_type = None
-filtered_columns = None
 
-def getColumnNames():
-    df = pd.read_csv('./dataset/'+filename)
-    return list(df.columns)
+ROOT = Path(__file__).resolve().parents[1]
+MAX_UPLOAD = 8 * 1024 * 1024
+PREVIEW_ROWS = 200
 
-# route to fetch and download the dataset submitted by a form over POST
-@app.route('/dataset', methods=['GET', 'POST'])
+app = Flask(__name__, static_folder=ROOT / "frontend", static_url_path="/assets")
+app.config.update(
+    SECRET_KEY=token_hex(32),
+    MAX_CONTENT_LENGTH=MAX_UPLOAD,
+)
+
+
+@dataclass
+class Workspace:
+    dataset: pd.DataFrame
+    revision: str = field(default_factory=lambda: token_hex(16))
+    run: models.ModelRun | None = None
+    lock: Lock = field(default_factory=Lock)
+
+
+workspaces = OrderedDict()
+workspaces_lock = Lock()
+
+
+@app.errorhandler(HTTPException)
+def http_error(error):
+    return jsonify(message=error.description), error.code
+
+
+@app.errorhandler(models.InputError)
+def invalid_input(error):
+    return jsonify(message=str(error)), 400
+
+
+@app.get("/")
+def index():
+    if "workspace" not in session:
+        session["workspace"] = token_hex(16)
+    return app.send_static_file("index.html")
+
+
+def parse_dataset(stream):
+    try:
+        raw = stream.read().decode("utf-8-sig")
+        if "\x00" in raw:
+            raise models.InputError("The CSV contains a null byte.")
+        reader = csv.reader(io.StringIO(raw, newline=""), strict=True)
+        columns = next(reader, [])
+        if len(columns) < 2 or any(not name.strip() for name in columns):
+            raise models.InputError("Use a CSV with at least two named columns.")
+        if len(set(columns)) != len(columns):
+            raise models.InputError("CSV column names must be unique.")
+
+        rows = []
+        for row in reader:
+            if not row or (len(row) == 1 and not row[0].strip()):
+                continue
+            if len(row) != len(columns):
+                raise models.InputError(f"CSV row ending at line {reader.line_num} has the wrong number of columns.")
+            rows.append(row)
+        if not rows:
+            raise models.InputError("The CSV has no data rows.")
+
+        # Preserve headers and CSV row numbers while inferring numeric columns.
+        frame = pd.read_csv(
+            io.StringIO(raw), header=0, names=columns, keep_default_na=False, na_values=[""],
+        )
+    except (UnicodeDecodeError, csv.Error, pd.errors.ParserError) as error:
+        raise models.InputError("Use a well-formed, comma-separated UTF-8 CSV.") from error
+    return frame, rows[:PREVIEW_ROWS]
+
+
+@app.post("/dataset")
 def dataset():
-    if request.method == 'POST':
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            print("No file part")
-            resp = jsonify({'message': 'No file part'})
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            return resp,400, {'ContentType':'application/json'}
-        
-        file = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
+    upload = request.files.get("file")
+    if not upload or Path(upload.filename).suffix.lower() != ".csv":
+        raise models.InputError("Select a CSV file to upload.")
 
-        if file.filename == '':
-            resp = jsonify({'message': 'No file selected'})
-            resp.headers.add('Access-Control-Allow-Origin', '*')
-            return resp,400, {'ContentType':'application/json'}
-        
-        # if the file is valid
-        if file:
-            # if the dataset.csv exists under /dataset, delete it
-            if os.path.exists('/dataset/dataset.csv'):
-                os.remove('/dataset/dataset.csv')
-
-            # check if the file is a csv file
-            if file.filename.split('.')[-1] in supprted_type:
-                # filename = secure_filename(file.filename)
-                file.save('./dataset/'+filename)
-                print("File uploaded successfully")
-
-                # return the column names of the dataset
-
-                resp = jsonify({'message': 'File uploaded successfully', 'success': True, 'columns': getColumnNames()})
-                resp.headers.add('Access-Control-Allow-Origin', '*')
-                return resp,200, {'ContentType':'application/json'} 
-            else:
-                print("File not supported")
-                resp = jsonify({'message': 'File not supported'})
-                resp.headers.add('Access-Control-Allow-Origin', '*')
-                return resp,400, {'ContentType':'application/json'}
-    
-    # return none if the request is invalid
-    resp = jsonify({'message': 'No file selected'})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,400, {'ContentType':'application/json'}
-
-# route to get decision bounadry plot
-@app.route('/decisionboundary', methods=['GET', 'POST'])
-def decisionboundary():
-    # get json data 
-    data = request.get_json()
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-
-    # get the first and second feature
-    feature1 = data['feature1']
-    feature2 = data['feature2']
-
-    # get the target
-    label = data['target']
-
-    # get the model
-    model = data['model']
-
-    # get max depth
-    max_depth = int(data['max_depth'])
-    
-    # create a X and y dataframe
-    df = pd.read_csv('./dataset/'+filename)
-    X = df[[feature1, feature2]].to_numpy()
-    y = df[label].to_numpy()
-
-    all_frames = models.decision_figure(X, y, max_depth, feature1, feature2, label, model)
-
-    # return the plot
-    resp = jsonify({'frames': all_frames, 'message': 'Running Model', 'success': True})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
+    frame, preview = parse_dataset(upload.stream)
+    workspace = Workspace(frame)
+    key = session.get("workspace") or token_hex(16)
+    session["workspace"] = key
+    with workspaces_lock:
+        workspaces[key] = workspace
+        workspaces.move_to_end(key)
+        if len(workspaces) > 16:
+            workspaces.popitem(last=False)
+    return jsonify(
+        message="Dataset uploaded.", success=True, columns=list(frame.columns),
+        preview=preview, row_count=len(frame), dataset_id=workspace.revision,
+    )
 
 
-# route to run model
-@app.route('/runmodel', methods=['GET', 'POST'])
+def request_data():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise models.InputError("Send a JSON object with the request.")
+    return data
+
+
+def current_workspace():
+    key = session.get("workspace")
+    with workspaces_lock:
+        workspace = workspaces.get(key)
+        if workspace:
+            workspaces.move_to_end(key)
+    if workspace is None:
+        abort(409, "Upload a dataset first.")
+    return workspace
+
+
+def check_revision(workspace, data):
+    if "dataset_id" in data and data["dataset_id"] != workspace.revision:
+        abort(409, "The dataset changed. Upload your CSV again.")
+
+
+@app.post("/runmodel")
 def runmodel():
-    global model, model_type, df, label, filtered_columns
-    # get json data
-    data = request.get_json()
-
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-    
-    print(data)
-
-    # get model params
-    model_name = data['model']
-    model_type = data['model_type']
-    max_depth = int(data['max_depth'])
-    leaves = int(data['leaves'])
-    label = data['target']
-    split = float(data['split'])
-
-    # create a dataset with all columns except the target
-    df = pd.read_csv('./dataset/'+filename)
-
-    # get filtered columns
-    filtered_columns = data['filter_columns']
-
-    # if the filter columns is not empty, drop the columns
-    if filtered_columns:
-        df = df.drop(columns=filtered_columns)
-    
-    
-    # check each column and encode it if it is not numeric
-    for column in df.columns:
-        if df[column].dtype == 'object' and column != label:
-            le = LabelEncoder()
-            df[column] = le.fit_transform(df[column])
-
-    # split the dataset into train and test
-    df_train, df_test = train_test_split(df, test_size=split, random_state=42)
-
-    X = df_train.drop(columns=[label])
-    y = df_train[label]
-    
-    # run the model
-    if model_name == 'decision-tree':
-        model = models.dtree_model(X, y, max_depth, leaves, model_type)
-    elif model_name == 'random-forest':
-        model = models.random_forest_model(X, y, max_depth, leaves, model_type)
-    
-    confusion_matrix = models.getConfusion(model, df_test.drop(columns=[label]), df_test[label], model_type)
-    
-    metrics = models.getMetrics(df_test[label], model.predict(df_test.drop(columns=[label])), model_type)
-
-    shap_values = models.getShapFigure(model,X,y,model_type)
+    data = request_data()
+    workspace = current_workspace()
+    check_revision(workspace, data)
+    with workspace.lock:
+        run = models.train(workspace.dataset, data)
+        result = run.summary()
+        if current_workspace() is not workspace:
+            abort(409, "The dataset changed while training. Run the model again.")
+        workspace.run = run
+    return jsonify(
+        message="Model trained.", success=True, run_id=run.id,
+        **result,
+    )
 
 
-    # return the confusion matrix
-    resp = jsonify({'metrics':metrics,'confusion_matrix': confusion_matrix, 'message': 'Running Model', 'success': True, 'shap_values': shap_values})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
-
-# route to get individual shap values
-@app.route('/individualshap', methods=['GET', 'POST'])
-def individualshap():
-    # get json data
-    data = request.get_json()
-
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-    
-    print(data)
-
-    # get the feature
-    feature = data['feature']
-
-    # get the shap values
-    shap_values = models.getIndividualShap(model, df.drop(columns=[label]), df[label], feature, model_type)
-
-    # return the shap values
-    resp = jsonify({'shap_values': shap_values, 'message': 'Obtaining Data', 'success': True})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
-
-# route to get individual shap values
-@app.route('/interaction', methods=['GET', 'POST'])
-def interaction():
-    # get json data
-    data = request.get_json()
-
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-    
-    print(data)
-
-    # get the feature
-    feature1 = data['feature1']
-    feature2 = data['feature2']
-
-    # get the shap values
-    feature_interaction = models.getInteraction(model, df.drop(columns=[label]), df[label], feature1, feature2, model_type)
-
-    # return the shap values
-    resp = jsonify({'feature_interaction': feature_interaction, 'message': 'Obtaining Data', 'success': True})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
-
-# route to get individual shap values
-@app.route('/partial', methods=['GET', 'POST'])
-def partial():
-    # get json data
-    data = request.get_json()
-
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-    
-    print(data)
-
-    # get the feature
-    feature = data['feature']
-
-    # get the shap values
-    partial_data = models.getPartial(model, df.drop(columns=[label]), df[label], feature, model_type)
-
-    # return the shap values
-    resp = jsonify({'partial_data': partial_data, 'message': 'Obtaining Data', 'success': True})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
+PLOTS = {
+    "decisionboundary": "frames",
+    "individualshap": "shap_values",
+    "interaction": "feature_interaction",
+    "partial": "partial_data",
+    "interactionsummary": "interaction_summary",
+    "getpr": "pr",
+    "getroc": "roc",
+    "contribution": "interaction_summary",
+}
 
 
-# route to get individual shap values
-@app.route('/interactionsummary', methods=['GET', 'POST'])
-def interactionsummary():
-    # get json data
-    data = request.get_json()
-
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-    
-    print(data)
-
-    # get the feature
-    feature = data['feature']
-
-    # get the shap values
-    interaction_summary = models.getInteractionSummary(model, df.drop(columns=[label]), df[label], feature, model_type)
-
-    # return the shap values
-    resp = jsonify({'interaction_summary': interaction_summary, 'message': 'Obtaining Data', 'success': True})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
+def plot(plot_name):
+    data = request_data()
+    workspace = current_workspace()
+    check_revision(workspace, data)
+    with workspace.lock:
+        run = workspace.run
+        if run is None or ("run_id" in data and data["run_id"] != run.id):
+            abort(409, "Run the model for this dataset first.")
+        result = run.plot(plot_name, data)
+        if current_workspace() is not workspace:
+            abort(409, "The dataset changed. Run the model again.")
+    return jsonify(message="Plot ready.", success=True, **{PLOTS[plot_name]: result})
 
 
-# route to get pr curve
-@app.route('/getpr', methods=['GET', 'POST'])
-def getpr():
-    # get json data
-    data = request.get_json()
-
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-    
-    print(data)
-
-    # get the feature
-    cut_off = data['cut_off']
-
-    # get the shap values
-    pr = models.getPr(model, df.drop(columns=[label]), df[label], cut_off, model_type)
-
-    # return the shap values
-    resp = jsonify({'pr': pr, 'message': 'Obtaining Data', 'success': True})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
-
-# route to get roc curve
-@app.route('/getroc', methods=['GET', 'POST'])
-def getroc():
-    # get json data
-    data = request.get_json()
-
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-    
-    print(data)
-
-    # get the feature
-    cut_off = data['cut_off']
-    feature = data['feature']
-
-    # get the shap values
-    roc = models.getRoc(model, df.drop(columns=[label]), df[label], cut_off, model_type, feature)
-
-    # return the shap values
-    resp = jsonify({'roc': roc, 'message': 'Obtaining Data', 'success': True})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
-
-# route to get contribution plot
-@app.route('/contribution', methods=['GET', 'POST'])
-def contribution():
-    # get json data
-    data = request.get_json()
-
-    if not data:
-        resp = jsonify({'message': 'No data found'})
-        resp.headers.add('Access-Control-Allow-Origin', '*')
-        return resp,400, {'ContentType':'application/json'}
-    
-    print(data)
-
-    # get the feature
-    indx = data['index']
-
-    # get the shap values
-    interaction_summary = models.getContribution(model, df.drop(columns=[label]), df[label], indx, model_type)
-
-    # return the shap values
-    resp = jsonify({'interaction_summary': interaction_summary, 'message': 'Obtaining Data', 'success': True})
-    resp.headers.add('Access-Control-Allow-Origin', '*')
-    return resp,200, {'ContentType':'application/json'}
-
-if __name__ == "__main__":
-    app.run(host = '0.0.0.0',port = 1407, debug = True)
-    #playRecord.play()
+for plot_name in PLOTS:
+    app.add_url_rule(
+        f"/{plot_name}", endpoint=plot_name,
+        defaults={"plot_name": plot_name}, view_func=plot, methods=["POST"],
+    )

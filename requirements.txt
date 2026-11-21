@@ -1,0 +1,8 @@
+Flask==3.1.2
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.5.2
+plotly==5.24.1
+shap==0.46.0
+explainerdashboard==0.4.8
+waitress==3.0.2

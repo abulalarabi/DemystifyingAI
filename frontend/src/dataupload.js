@@ -1,75 +1,65 @@
-const form = document.getElementById('upload-form');
-form.addEventListener('submit', async (event) => {
+const uploadForm = byId('upload-form');
+const fileInput = byId('file');
+
+fileInput.addEventListener('change', () => {
+    byId('datasetname').textContent = fileInput.files[0]?.name ?? 'Select a Dataset';
+});
+
+uploadForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const formData = new FormData(form);
-    $.ajax({
-        url: 'http://127.0.0.1:1407/dataset',
-        type: 'post',
-        data:formData,
-        contentType: false,
-        cache: false,
-        processData: false,
-        success:function(data){
-            if(data.hasOwnProperty('message'))
-            {
-                Toastify({
-                    text: data.message,
-                    duration: 3000
-                }).showToast();
-                console.log(data.message);
-                if(data.hasOwnProperty('success'))
-                {
-                    if(data.success)
-                    {
-                        
-                        $('#datasetviewer').fadeIn(300);
-
-                        // append the column names to output-select id dropdown
-                        let column_names = data.columns;
-                        let output_select = document.getElementById('output-select');
-                        
-                        output_select.innerHTML = "";
-                        let filter_div = document.getElementById('filter_checkboxes');
-                        $("#filter_message").text("Select the columns to be filtered");
-                        column_names.forEach((column_name) => {
-                            let option = document.createElement('option');
-                            option.value = column_name;
-                            option.text = column_name;
-                            output_select.appendChild(option);
-                            
-                            let filter_checkbox = document.createElement('input');
-                            filter_checkbox.type = "checkbox";
-                            filter_checkbox.name = column_name;
-                            filter_checkbox.value = column_name;
-                            filter_checkbox.checked = true;
-                            filter_checkbox.className = "filter-checkbox";
-                            filter_div.appendChild(filter_checkbox);
-                            let filter_label = document.createElement('label');
-                            filter_label.for = column_name;
-                            filter_label.innerHTML = column_name;
-                            filter_label.className = "filter-label";
-                            filter_div.appendChild(filter_label);
-                            let br = document.createElement('br');
-                            filter_div.appendChild(br);
-
-                        });
-                        // select the last item fro output_select
-                        output_select.selectedIndex = output_select.length - 1;
-                        
-                        $('#modelparams').fadeIn(300);
-                    }
-                }
-                
-
-            }
-        },
-        error: function(jqXHR, exception){
-            if (jqXHR.status === 0) console.log("Could not connect to server");
-            else if (jqXHR.status == 404) console.log("Backend not working");
-            else if (jqXHR.status == 500) console.log("Server Error");
-            $("#modelloading").hide();
-        },
+    const formData = new FormData(uploadForm);
+    updateWorkspace(async () => {
+        const data = await post('/dataset', formData);
+        appState.dataset = data;
+        clearResults();
+        renderPreview(data);
+        renderFilters(data.columns);
+        byId('datasetviewer').style.display = 'block';
+        byId('modelparams').style.display = 'block';
+        notify(data.message);
     });
 });
 
+function renderPreview({ columns, preview, row_count }) {
+    const table = byId('csvRoot');
+    table.replaceChildren();
+    const heading = table.createTHead().insertRow();
+    for (const column of columns) {
+        const cell = document.createElement('th');
+        cell.scope = 'col';
+        cell.textContent = column;
+        heading.append(cell);
+    }
+    const body = table.createTBody();
+    for (const row of preview) {
+        const entry = body.insertRow();
+        row.forEach((value) => { entry.insertCell().textContent = value; });
+    }
+    byId('dataset-preview-count').textContent = `Showing ${preview.length} of ${row_count} rows`;
+}
 
+function renderFilters(columns) {
+    setOptions('output-select', columns, columns.length - 1);
+    byId('filter_message').textContent = 'Uncheck features to exclude them.';
+    byId('filter_checkboxes').replaceChildren(...columns.map((column) => {
+        const label = document.createElement('label');
+        label.className = 'filter-label';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = column;
+        checkbox.checked = true;
+        checkbox.className = 'filter-checkbox';
+        label.append(checkbox, column);
+        return label;
+    }));
+    updateTargetFilter();
+}
+
+function updateTargetFilter() {
+    const target = byId('output-select').value;
+    document.querySelectorAll('.filter-checkbox').forEach((checkbox) => {
+        checkbox.disabled = checkbox.value === target;
+    });
+}
+
+byId('output-select').addEventListener('change', updateTargetFilter);
